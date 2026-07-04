@@ -8,6 +8,7 @@ class NotEnoughFunds extends Exception{public NotEnoughFunds(String message){sup
 class NumberException extends Exception{public NumberException(String message){super(message);}}
 class InactiveAccountException extends Exception {public InactiveAccountException(String message){super(message);}}
 class InvalidCardException extends Exception {public InvalidCardException(String message){super(message);}}
+class AccountNotFoundException extends Exception {public AccountNotFoundException(String message){super(message);}}
 
 //clasele
 class Card
@@ -266,6 +267,19 @@ class Tranzaction
 
 
 class BankSystem {
+    // Lista globală cu toate conturile din sistem
+    private static ArrayList<Account> bankAccounts = new ArrayList<>();
+
+    // Metoda de căutare a unui cont după un String de IBAN
+    public static Account findAccountByIban(String iban) throws AccountNotFoundException {
+        for (Account acc : bankAccounts) {
+            if (acc.getIban().equals(iban)) {
+                return acc;
+            }
+        }
+        // Dacă bucla se termină și nu a returnat nimic, înseamnă că nu există
+        throw new AccountNotFoundException("Eroare: Contul cu IBAN-ul " + iban + " nu a fost găsit în sistem.\n");
+    }
     public static void main(String[] args) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
@@ -284,6 +298,10 @@ class BankSystem {
 
             customer.openAccount(contCurent);
             customer.openAccount(contEconomii);
+            //le adaugam in lista sistemului
+            bankAccounts.add(contCurent);
+            bankAccounts.add(contEconomii);
+
         } catch (NumberException e) {
             System.err.println("Eroare la inițializarea sistemului: " + e.getMessage());
             return;
@@ -300,8 +318,9 @@ class BankSystem {
             System.out.println("1. Depunere numerar (Cont Curent)");
             System.out.println("2. Retragere numerar (La ghișeu - Cont Curent)");
             System.out.println("3. Afișare istoric tranzacții (Cont Curent)");
-            System.out.println("4. Transferă bani către Contul de Economii");
+            System.out.println("4. Transferă bani");
             System.out.println("5. Plătește / Retrage cu CARDUL");
+            //System.out.println("6. Sterge cont");
             System.out.println("6. Ieșire");
             System.out.print("Alege o opțiune: ");
 
@@ -346,11 +365,20 @@ class BankSystem {
                     break;
 
                 case 4:
-                    System.out.print("Introdu suma de transferat: ");
+                    System.out.println("\n--- TRANSFER BANCAR ---");
+                    //System.out.println("Sfat: Pentru test, folosește IBAN-ul contului de economii: RO99INGB0000000000000002");
+                    System.out.print("Introdu IBAN-ul contului destinație: ");
+                    String destinatarIban = reader.readLine();
                     try {
-                        double sumaTransfer = Double.parseDouble(reader.readLine());
-                        contCurent.transfer(contEconomii, sumaTransfer);
-                        System.out.println("[SUCCES] Ai transferat " + sumaTransfer + " RON în contul de economii.");
+                        System.out.print("Introdu suma de transferat: ");
+                        double sumaTransfer = Double.parseDouble(reader.readLine());//citim suma
+
+                        //se cauta contul in care vrem sa transferam
+                        Account contDestiantie = findAccountByIban(destinatarIban);
+                        // daca nu se gaseste se arunca exceptie si nu se mai ajunge aici
+                        //deci aici s-a gasit contul daca se ajunge aici
+                        contCurent.transfer(contDestiantie, sumaTransfer);
+                        System.out.println("[SUCCES] Ai transferat " + sumaTransfer + " RON.");
                     } catch (NumberFormatException e) {
                         System.out.println("[EROARE INPUT] Format numeric invalid.");
                     } catch (Exception e) {
